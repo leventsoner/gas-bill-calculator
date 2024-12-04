@@ -1,5 +1,6 @@
 import datetime as dt
 from dataclasses import dataclass
+from typing import Dict, Any
 
 @dataclass
 class GasConstants:
@@ -10,25 +11,73 @@ class GasConstants:
     TAX_RATE = 0.2
     STANDARD_MONTH_DAYS = 30
 
-def calculate_gas_bill(first_index: float, last_index: float, 
-                      start_date: dt.date, end_date: dt.date) -> dict:
-    """
-    Calculate natural gas bill based on meter readings and dates.
-    
-    Args:
-        first_index: Initial meter reading in cubic meters
-        last_index: Final meter reading in cubic meters
-        start_date: Start date of billing period
-        end_date: End date of billing period
-    
-    Returns:
-        dict: Dictionary containing consumption and cost details
-    """
-    if end_date <= start_date:
-        raise ValueError("End date must be after start date")
-    if last_index < first_index:
-        raise ValueError("Final meter reading must be greater than initial reading")
+class Currency:
+    SYMBOL = "€"  # Can be changed to "₺" for Turkish Lira
+    POSITION = "before"  # or "after" for Turkish style
 
+# Language dictionaries
+LANGUAGES = {
+    "en": {
+        "title": "Natural Gas Bill Calculator",
+        "enter_dates": "Enter the billing period dates:",
+        "start_date": "Start date",
+        "end_date": "End date",
+        "enter_readings": "Enter the meter readings (in cubic meters):",
+        "initial_reading": "Initial meter reading",
+        "final_reading": "Final meter reading",
+        "calculation_title": "Natural Gas Bill Calculation",
+        "period": "Period",
+        "consumption": "Consumption",
+        "daily_consumption": "Daily consumption",
+        "energy_consumed": "Energy consumed",
+        "daily_cost": "Daily cost",
+        "projected_monthly": "Projected monthly bill",
+        "total_cost": "Total cost for period",
+        "invalid_date": "Invalid date format. Please use YYYY-MM-DD format.",
+        "invalid_number": "Invalid input. Please enter a number.",
+        "negative_value": "Value cannot be negative.",
+        "date_error": "End date must be after start date",
+        "reading_error": "Final meter reading must be greater than initial reading"
+    },
+    "tr": {
+        "title": "Doğal Gaz Fatura Hesaplayıcı",
+        "enter_dates": "Fatura dönemi tarihlerini giriniz:",
+        "start_date": "Başlangıç tarihi",
+        "end_date": "Bitiş tarihi",
+        "enter_readings": "Sayaç okumalarını giriniz (metreküp cinsinden):",
+        "initial_reading": "İlk sayaç okuması",
+        "final_reading": "Son sayaç okuması",
+        "calculation_title": "Doğal Gaz Fatura Hesaplaması",
+        "period": "Dönem",
+        "consumption": "Tüketim",
+        "daily_consumption": "Günlük tüketim",
+        "energy_consumed": "Tüketilen enerji",
+        "daily_cost": "Günlük maliyet",
+        "projected_monthly": "Tahmini aylık fatura",
+        "total_cost": "Dönem toplam maliyet",
+        "invalid_date": "Geçersiz tarih formatı. Lütfen GG-AA-YYYY formatını kullanın.",
+        "invalid_number": "Geçersiz giriş. Lütfen bir sayı girin.",
+        "negative_value": "Değer negatif olamaz.",
+        "date_error": "Bitiş tarihi başlangıç tarihinden sonra olmalıdır",
+        "reading_error": "Son sayaç okuması ilk okumadan büyük olmalıdır"
+    }
+}
+
+def format_currency(amount: float, language: str) -> str:
+    """Format currency according to locale preferences."""
+    if Currency.POSITION == "before":
+        return f"{Currency.SYMBOL}{amount:.2f}"
+    return f"{amount:.2f}{Currency.SYMBOL}"
+
+def calculate_gas_bill(first_index: float, last_index: float, 
+                      start_date: dt.date, end_date: dt.date,
+                      lang: str = "en") -> dict:
+    """Calculate natural gas bill (same as before but with language parameter)"""
+    if end_date <= start_date:
+        raise ValueError(LANGUAGES[lang]["date_error"])
+    if last_index < first_index:
+        raise ValueError(LANGUAGES[lang]["reading_error"])
+    
     # Calculate basic consumption
     consumption_of_gas = last_index - first_index
     number_of_days = (end_date - start_date).days
@@ -60,53 +109,67 @@ def calculate_gas_bill(first_index: float, last_index: float,
         'total_cost_for_period': total_cost
     }
 
-def get_date_input(prompt: str) -> dt.date:
+def get_date_input(prompt: str, lang: str) -> dt.date:
     """Get and validate date input from user."""
     while True:
         try:
-            date_str = input(prompt + " (YYYY-MM-DD): ")
-            return dt.date.fromisoformat(date_str)
-        except ValueError:
-            print("Invalid date format. Please use YYYY-MM-DD format.")
+            if lang == "tr":
+                date_str = input(f"{prompt} (GG-AA-YYYY): ")
+                if "-" in date_str:
+                    day, month, year = map(int, date_str.split("-"))
+                    return dt.date(year, month, day)
+            else:
+                date_str = input(f"{prompt} (YYYY-MM-DD): ")
+                return dt.date.fromisoformat(date_str)
+        except (ValueError, TypeError):
+            if lang == "tr":
+                print(LANGUAGES[lang]["invalid_date"])
+            else:
+                print(LANGUAGES[lang]["invalid_date"])
 
-def get_float_input(prompt: str) -> float:
+def get_float_input(prompt: str, lang: str) -> float:
     """Get and validate float input from user."""
     while True:
         try:
-            value = float(input(prompt))
+            value = float(input(f"{prompt}: "))
             if value < 0:
-                print("Value cannot be negative.")
+                print(LANGUAGES[lang]["negative_value"])
                 continue
             return value
         except ValueError:
-            print("Invalid input. Please enter a number.")
+            print(LANGUAGES[lang]["invalid_number"])
 
 def main():
-    print("\nNatural Gas Bill Calculator")
+    # Set language and currency preferences
+    lang = "tr"  # Change to "tr" for Turkish
+    Currency.SYMBOL = "₺"  # Uncomment for Turkish Lira
+    Currency.POSITION = "after"  # Uncomment for Turkish style
+    
+    texts = LANGUAGES[lang]
+    
+    print(f"\n{texts['title']}")
     print("-" * 30)
     
-    # Get date inputs
-    print("\nEnter the billing period dates:")
-    first_day = get_date_input("Start date")
-    last_day = get_date_input("End date")
+    print(f"\n{texts['enter_dates']}")
+    first_day = get_date_input(texts['start_date'], lang)
+    last_day = get_date_input(texts['end_date'], lang)
 
-    # Get meter readings
-    print("\nEnter the meter readings (in cubic meters):")
-    first_index = get_float_input("Initial meter reading: ")
-    last_index = get_float_input("Final meter reading: ")
+    print(f"\n{texts['enter_readings']}")
+    first_index = get_float_input(texts['initial_reading'], lang)
+    last_index = get_float_input(texts['final_reading'], lang)
 
     try:
-        result = calculate_gas_bill(first_index, last_index, first_day, last_day)
+        result = calculate_gas_bill(first_index, last_index, first_day, last_day, lang)
         
-        print("\nNatural Gas Bill Calculation")
+        print(f"\n{texts['calculation_title']}")
         print("-" * 30)
-        print(f"Period: {first_day} to {last_day}")
-        print(f"Consumption: {result['consumption_m3']:.2f} m³")
-        print(f"Daily consumption: {result['daily_consumption_m3']:.2f} m³")
-        print(f"Energy consumed: {result['energy_consumed_kwh']:.2f} kWh")
-        print(f"Daily cost: €{result['daily_cost']:.2f}")
-        print(f"Projected monthly bill: €{result['projected_monthly_cost']:.2f}")
-        print(f"Total cost for period: €{result['total_cost_for_period']:.2f}")
+        print(f"{texts['period']}: {first_day} to {last_day}")
+        print(f"{texts['consumption']}: {result['consumption_m3']:.2f} m³")
+        print(f"{texts['daily_consumption']}: {result['daily_consumption_m3']:.2f} m³")
+        print(f"{texts['energy_consumed']}: {result['energy_consumed_kwh']:.2f} kWh")
+        print(f"{texts['daily_cost']}: {format_currency(result['daily_cost'], lang)}")
+        print(f"{texts['projected_monthly']}: {format_currency(result['projected_monthly_cost'], lang)}")
+        print(f"{texts['total_cost']}: {format_currency(result['total_cost_for_period'], lang)}")
 
     except ValueError as e:
         print(f"Error: {e}")
