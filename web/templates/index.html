@@ -6,27 +6,27 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Gas Bill Calculator</h1>
+        <h1 class="mb-4" id="pageTitle">Gas Bill Calculator</h1>
         
         <form id="calculatorForm">
             <div class="mb-3">
-                <label>Language</label>
-                <select class="form-select" name="language">
+                <label id="labelLanguage">Language</label>
+                <select class="form-select" name="language" id="languageSelect">
                     <option value="en">English</option>
-                    <option value="tr">Turkish</option>
+                    <option value="tr">Türkçe</option>
                 </select>
             </div>
 
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label>Start Date</label>
+                        <label id="labelStartDate">Start Date</label>
                         <input type="date" class="form-control" name="start_date" required>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label>End Date</label>
+                        <label id="labelEndDate">End Date</label>
                         <input type="date" class="form-control" name="end_date" required>
                     </div>
                 </div>
@@ -35,19 +35,19 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label>Initial Reading</label>
+                        <label id="labelInitialReading">Initial Reading</label>
                         <input type="number" step="0.01" class="form-control" name="first_index" required>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label>Final Reading</label>
+                        <label id="labelFinalReading">Final Reading</label>
                         <input type="number" step="0.01" class="form-control" name="last_index" required>
                     </div>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary">Calculate</button>
+            <button type="submit" class="btn btn-primary" id="calculateButton">Calculate</button>
         </form>
 
         <div id="results" class="mt-4">
@@ -57,20 +57,75 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        // UI translations
+        const translations = {
+            en: {
+                pageTitle: "Gas Bill Calculator",
+                language: "Language",
+                startDate: "Start Date",
+                endDate: "End Date",
+                initialReading: "Initial Reading",
+                finalReading: "Final Reading",
+                calculate: "Calculate",
+                results: "Calculation Results",
+                consumption: "Consumption",
+                dailyConsumption: "Daily Consumption",
+                energyConsumed: "Energy Consumed",
+                dailyCost: "Daily Cost",
+                projectedMonthlyCost: "Projected Monthly Cost",
+                totalCost: "Total Cost for Period",
+                period: "Period"
+            },
+            tr: {
+                pageTitle: "Doğal Gaz Fatura Hesaplayıcı",
+                language: "Dil",
+                startDate: "Başlangıç Tarihi",
+                endDate: "Bitiş Tarihi",
+                initialReading: "İlk Sayaç Okuması",
+                finalReading: "Son Sayaç Okuması",
+                calculate: "Hesapla",
+                results: "Hesaplama Sonuçları",
+                consumption: "Tüketim",
+                dailyConsumption: "Günlük Tüketim",
+                energyConsumed: "Tüketilen Enerji",
+                dailyCost: "Günlük Maliyet",
+                projectedMonthlyCost: "Tahmini Aylık Fatura",
+                totalCost: "Dönem Toplam Maliyet",
+                period: "Dönem"
+            }
+        };
+
+        function updateUILanguage(lang) {
+            const text = translations[lang];
+            $('#pageTitle').text(text.pageTitle);
+            $('#labelLanguage').text(text.language);
+            $('#labelStartDate').text(text.startDate);
+            $('#labelEndDate').text(text.endDate);
+            $('#labelInitialReading').text(text.initialReading);
+            $('#labelFinalReading').text(text.finalReading);
+            $('#calculateButton').text(text.calculate);
+        }
+
         $(document).ready(function() {
+            // Handle language change
+            $('#languageSelect').on('change', function() {
+                updateUILanguage(this.value);
+            });
+
             $('#calculatorForm').on('submit', function(e) {
-                e.preventDefault(); // Prevent default form submission
+                e.preventDefault();
                 
-                // Get form data
+                const lang = $('#languageSelect').val();
+                const text = translations[lang];
+                
                 const formData = {
-                    language: $('select[name="language"]').val(),
+                    language: lang,
                     start_date: $('input[name="start_date"]').val(),
                     end_date: $('input[name="end_date"]').val(),
                     first_index: parseFloat($('input[name="first_index"]').val()),
                     last_index: parseFloat($('input[name="last_index"]').val())
                 };
 
-                // Send POST request to calculate endpoint
                 $.ajax({
                     url: '/calculate',
                     method: 'POST',
@@ -79,17 +134,34 @@
                     success: function(response) {
                         if (response.success) {
                             const result = response.result;
-                            // Display results
+                            
+                            // Format dates according to language
+                            const formatDate = (dateStr, lang) => {
+                                const date = new Date(dateStr);
+                                if (lang === 'tr') {
+                                    return date.toLocaleDateString('tr-TR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric'
+                                    });
+                                }
+                                return date.toLocaleDateString('en-US');
+                            };
+
+                            const startDate = formatDate(formData.start_date, lang);
+                            const endDate = formatDate(formData.end_date, lang);
+
                             $('#results').html(`
                                 <div class="card">
                                     <div class="card-body">
-                                        <h5 class="card-title">Calculation Results</h5>
-                                        <p>Consumption: ${result.consumption_m3.toFixed(2)} m³</p>
-                                        <p>Daily Consumption: ${result.daily_consumption_m3.toFixed(2)} m³</p>
-                                        <p>Energy Consumed: ${result.energy_consumed_kwh.toFixed(2)} kWh</p>
-                                        <p>Daily Cost: ${result.daily_cost.toFixed(2)} ₺</p>
-                                        <p>Projected Monthly Cost: ${result.projected_monthly_cost.toFixed(2)} ₺</p>
-                                        <p>Total Cost for Period: ${result.total_cost_for_period.toFixed(2)} ₺</p>
+                                        <h5 class="card-title">${text.results}</h5>
+                                        <p>${text.period}: ${startDate} - ${endDate}</p>
+                                        <p>${text.consumption}: ${result.consumption_m3.toFixed(2)} m³</p>
+                                        <p>${text.dailyConsumption}: ${result.daily_consumption_m3.toFixed(2)} m³</p>
+                                        <p>${text.energyConsumed}: ${result.energy_consumed_kwh.toFixed(2)} kWh</p>
+                                        <p>${text.dailyCost}: ${result.daily_cost.toFixed(2)} ₺</p>
+                                        <p>${text.projectedMonthlyCost}: ${result.projected_monthly_cost.toFixed(2)} ₺</p>
+                                        <p>${text.totalCost}: ${result.total_cost_for_period.toFixed(2)} ₺</p>
                                     </div>
                                 </div>
                             `);
@@ -110,6 +182,9 @@
                     }
                 });
             });
+
+            // Set initial language
+            updateUILanguage($('#languageSelect').val());
         });
     </script>
 </body>
