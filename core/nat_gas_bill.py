@@ -4,10 +4,10 @@ from typing import Dict, Any
 
 @dataclass
 class GasConstants:
-    CORRECTION_COEFFICIENT = 1.00089
-    ACTUAL_UPPER_CALORIFIC_VALUE = 9396.0129  # kcal/cubic_meter
+    CORRECTION_COEFFICIENT = 0.9920
+    ACTUAL_UPPER_CALORIFIC_VALUE = 9239.1056  # kcal/cubic_meter
     KCAL_PER_KWH = 860.42
-    RETAIL_ENERGY_PRICE = 0.797288
+    RETAIL_ENERGY_PRICE = 2.16402058
     TAX_RATE = 0.2
     STANDARD_MONTH_DAYS = 30
 
@@ -69,7 +69,7 @@ def format_currency(amount: float, language: str) -> str:
         return f"{Currency.SYMBOL}{amount:.2f}"
     return f"{amount:.2f}{Currency.SYMBOL}"
 
-def calculate_gas_bill(first_index: float, last_index: float, 
+def calculate_gas_bill(first_index: float, last_index: float,
                       start_date: dt.date, end_date: dt.date,
                       lang: str = "en") -> dict:
     """Calculate natural gas bill (same as before but with language parameter)"""
@@ -77,7 +77,7 @@ def calculate_gas_bill(first_index: float, last_index: float,
         raise ValueError(LANGUAGES[lang]["date_error"])
     if last_index < first_index:
         raise ValueError(LANGUAGES[lang]["reading_error"])
-    
+
     # Calculate basic consumption
     consumption_of_gas = last_index - first_index
     number_of_days = (end_date - start_date).days
@@ -95,7 +95,7 @@ def calculate_gas_bill(first_index: float, last_index: float,
     base_cost = amount_of_energy_consumed * GasConstants.RETAIL_ENERGY_PRICE
     total_cost = base_cost * (1 + GasConstants.TAX_RATE)
     daily_cost = total_cost / number_of_days
-    
+
     # Project monthly bill
     projected_monthly_cost = daily_cost * GasConstants.STANDARD_MONTH_DAYS
 
@@ -144,12 +144,12 @@ def main():
     lang = "tr"  # Change to "tr" for Turkish
     Currency.SYMBOL = "₺"  # Uncomment for Turkish Lira
     Currency.POSITION = "after"  # Uncomment for Turkish style
-    
+
     texts = LANGUAGES[lang]
-    
+
     print(f"\n{texts['title']}")
     print("-" * 30)
-    
+
     print(f"\n{texts['enter_dates']}")
     first_day = get_date_input(texts['start_date'], lang)
     last_day = get_date_input(texts['end_date'], lang)
@@ -160,7 +160,7 @@ def main():
 
     try:
         result = calculate_gas_bill(first_index, last_index, first_day, last_day, lang)
-        
+
         print(f"\n{texts['calculation_title']}")
         print("-" * 30)
         print(f"{texts['period']}: {first_day} to {last_day}")
